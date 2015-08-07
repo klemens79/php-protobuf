@@ -935,6 +935,11 @@ class ProtobufParser
 
                 $enum = new EnumDescriptor($name, $file, $parent);
                 $this->_parseEnum($enum, $content);
+
+                // ignore ";" at the end of the enum definition
+                if (strlen($messageContent) > $offset['end'] && $messageContent[$offset['end']] === ';')
+                    $offset['end']++;
+
                 // removing it from string
                 $messageContent = '' . trim(substr($messageContent, $offset['end']));
             } else if (strtolower($next) == 'import') {
@@ -984,7 +989,7 @@ class ProtobufParser
 
                 // We don't support option parameters just yet, skip for now.
                 $messageContent = preg_replace('/^.+\n/', '', $messageContent);
-                
+
             } else if (strtolower($next) == 'package') {
 
                 $match = preg_match(
@@ -1154,48 +1159,41 @@ class ProtobufParser
                 }
 
                 throw new Exception('Type ' . $field->getType() . ' not defined');
-            } else if ($namespace[0] == '.') {
-                if ($namespace == '.') {
-                    $namespace = '';
-                } else {
-                    $namespace = substr($namespace, 1);
-                }
-
-                if (!isset($this->_namespaces[$namespace])) {
-                    throw new Exception(
-                        'Namespace \'' . $namespace . '\' for type ' .
-                        $field->getType() . ' not defined'
-                    );
-                }
-
-                if (!isset($this->_namespaces[$namespace][$field->getType()])) {
-                    throw new Exception(
-                        'Type ' . $field->getType() . ' not defined in ' . $namespace
-                    );
-                }
-
-                $field->setTypeDescriptor(
-                    $this->_namespaces[$namespace][$field->getType()]
-                );
-
             } else {
-                $type = $descriptor->findType(
-                    $field->getType(), $field->getNamespace()
-                );
-
-                if ($type !== false) {
-                    $field->setTypeDescriptor($type);
-                    continue;
-                }
-
-                if (!isset($this->_namespaces[$namespace])) {
-                    throw new Exception(
-                        'Namespace ' . $namespace . ' for type ' .
-                        $field->getType() . ' not defined'
+                if ($namespace[0] == '.') {
+                    if ($namespace === '.') {
+                        $namespace = '';
+                    } else {
+                        $namespace = substr($namespace, 1);
+                    }
+                } else {
+                    $type = $descriptor->findType(
+                        $field->getType(), $field->getNamespace()
                     );
+
+                    if ($type !== false) {
+                        $field->setTypeDescriptor($type);
+                        continue;
+                    }
                 }
 
-                $exists = isset($this->_namespaces[$namespace][$field->getType()]);
+                $currentNs = &$this->_namespaces;
+                $nslist = explode(".", $namespace);
+                foreach($nslist as &$value) {
+                    if (!isset($currentNs[$value])) {
+                        throw new Exception(
+                            'Namespace ' . $value . ' for type ' .
+                            $field->getType() . ' not defined'
+                        );
+                    }
+                    $currentNs = &$currentNs[$value];
+                }
+
+                if ($currentNs instanceof MessageDescriptor) {
+                    $exists = $currentNs->findType($field->getType());
+                } else {
+                    $exists = isset($currentNs[$field->getType()]);
+                }
 
                 if (!$exists) {
                     throw new Exception(
@@ -1203,9 +1201,11 @@ class ProtobufParser
                     );
                 }
 
-                $field->setTypeDescriptor(
-                    $this->_namespaces[$namespace][$field->getType()]
-                );
+                if ($currentNs instanceof MessageDescriptor) {
+                    $field->setTypeDescriptor($exists);
+                } else {
+                    $field->setTypeDescriptor($currentNs[$field->getType()]);
+                }
             }
         }
 
