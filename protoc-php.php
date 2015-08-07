@@ -42,9 +42,10 @@ if (!debug_backtrace()) {
                 break;
             case 'i':
             case 'include' :
-                $includes = $value;
-                if (strpos($value, '-') === 0) {
-                    $optionError = true;
+                if (is_array($value)) {
+                    $includes = $value;
+                } else {
+                    array_push($includes, $value);
                 }
                 break;
             default :
