@@ -978,6 +978,7 @@ class ProtobufParser
 
                 if (!isset(self::$_parsers[$parserKey])) {
                     $pbp = new ProtobufParser($this->_useNativeNamespaces);
+                    $pbp->setFilenamePrefix($this->_filenamePrefix);
                     self::$_parsers[$parserKey] = $pbp;
                 } else {
                     $pbp = self::$_parsers[$parserKey];
