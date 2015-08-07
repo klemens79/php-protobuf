@@ -15,11 +15,12 @@ if (!debug_backtrace()) {
     $useNamespaces = false;
     $filenamePrefix = false;
     $outputPsr = false;
+    $includes = array();
 
     $iterator = new \RegexIterator(new \ArrayIterator($argv), '/^-/');
 
-    $shortOpts = "np:";
-    $longOpts = array("use-namespaces", "filename-prefix:", "psr");
+    $shortOpts = "np:i:";
+    $longOpts = array("use-namespaces", "filename-prefix:", "psr", "include:");
 
     $options = getOpt($shortOpts, $longOpts);
 
@@ -38,6 +39,13 @@ if (!debug_backtrace()) {
                 break;
             case 'psr':
                 $outputPsr = true;
+                break;
+            case 'i':
+            case 'include' :
+                $includes = $value;
+                if (strpos($value, '-') === 0) {
+                    $optionError = true;
+                }
                 break;
             default :
                 $optionError = true;
@@ -64,6 +72,7 @@ if (!debug_backtrace()) {
 
     if ($optionError || count($argv) != 2) {
         printf('USAGE: %s [OPTIONS] PROTO_FILE' . PHP_EOL, $argv[0]);
+        printf('  -i, --include                     ProtoBuf include directory' . PHP_EOL);
         printf('  -n, --use-namespaces              Use native PHP namespaces' . PHP_EOL);
         printf('  -p, --filename-prefix [PREFIX]    Specify a prefix for generated file names' . PHP_EOL);
         printf('  --psr                             Output class files in a psr-4 directory structure' . PHP_EOL);
@@ -73,7 +82,7 @@ if (!debug_backtrace()) {
     // Reindex argv
     $GLOBALS['argv'] = array_values($GLOBALS['argv']);
 
-    $parser = new ProtobufParser($useNamespaces);
+    $parser = new ProtobufParser($useNamespaces, $includes);
 
     if ($filenamePrefix !== false) {
         $parser->setFilenamePrefix($filenamePrefix);

@@ -21,6 +21,7 @@ class ProtobufParser
     private static $_parsers = array();
     private $_file = null;
     private $_namespaces = array();
+    private $_includes = array();
 
     const TAB = '    ';
     const EOL = PHP_EOL;
@@ -33,10 +34,11 @@ class ProtobufParser
 
     private $_comment;
 
-    public function __construct($useNativeNamespaces = null)
+    public function __construct($useNativeNamespaces = null, $includes = array())
     {
         $this->_hasSplTypes = extension_loaded('SPL_Types');
         $this->_useNativeNamespaces = (boolean)$useNativeNamespaces;
+        $this->_includes = $includes;
     }
 
     /**
@@ -962,6 +964,16 @@ class ProtobufParser
                 $includedFilename = $matches[1][0];
 
                 if (!file_exists($includedFilename)) {
+                    foreach ($this->_includes as &$dir) {
+                        $fn = $dir . "/" . $includedFilename;
+                        if (file_exists($fn)) {
+                            $includedFilename = $fn;
+                            break;
+                        }
+                    }
+                }
+
+                if (!file_exists($includedFilename)) {
                     throw new Exception(
                         'Included file ' . $includedFilename . ' does not exist'
                     );
@@ -977,7 +989,7 @@ class ProtobufParser
                 $parserKey = realpath($includedFilename);
 
                 if (!isset(self::$_parsers[$parserKey])) {
-                    $pbp = new ProtobufParser($this->_useNativeNamespaces);
+                    $pbp = new ProtobufParser($this->_useNativeNamespaces, $this->_includes);
                     $pbp->setFilenamePrefix($this->_filenamePrefix);
                     self::$_parsers[$parserKey] = $pbp;
                 } else {
