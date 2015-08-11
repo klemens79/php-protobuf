@@ -807,6 +807,10 @@ class ProtobufParser
                     '\'required\' => ' .
                     ($field->isOptional() ? 'false' : 'true') . ','
                 );
+
+                if ($field->isPacked()) {
+                    $buffer->append('\'packed\' => true,');
+                }
             } else {
                 $buffer->append('\'repeated\' => true,');
             }
@@ -1003,6 +1007,11 @@ class ProtobufParser
                 // We don't support option parameters just yet, skip for now.
                 $messageContent = preg_replace('/^.+\n/', '', $messageContent);
 
+            } else if (strtolower($next) == 'extensions') {
+
+                // We don't support extension parameters just yet, skip for now.
+                $messageContent = trim(preg_replace('/^.+;/', '', $messageContent));
+
             } else if (strtolower($next) == 'package') {
 
                 $match = preg_match(
@@ -1060,16 +1069,17 @@ class ProtobufParser
     {
         $field = new FieldDescriptor();
 
-        // parse the default value
+        // parse the options
+        // XXX: support more than 1 option
         $match = preg_match(
-            '/\[\s?default\s?=\s?([^\[]*)\]\s?;/',
+            '/\[\s?(\w+)\s?=\s?([^\[]*)\]\s?;/',
             $content,
             $matches,
             PREG_OFFSET_CAPTURE
         );
 
         if ($match) {
-            $field->setDefault($matches[1][0]);
+            $field->setOption($matches[1][0], $matches[2][0]);
             $content = trim(substr($content, 0, $matches[0][1])) . ';';
         }
 

@@ -46,6 +46,18 @@ class FieldDescriptor
     private $_number;
     private $_type;
     private $_typeDescriptor = null;
+    private $_options;
+
+    /**
+     * Creates new field descriptor
+     *
+     */
+    public function __construct() {
+        $this->_options = array(
+            'default' => null,
+            'packed' => null
+        );
+    }
 
     /**
      * Returns default value
@@ -54,7 +66,17 @@ class FieldDescriptor
      */
     public function getDefault()
     {
-        return $this->_default;
+        return $this->_options['default'];
+    }
+
+    /**
+     * Retruns if option is packed
+     *
+     * @return bool
+     */
+    public function isPacked()
+    {
+        return isset($this->_options['packed']) && $this->_options['packed'];
     }
 
     /**
@@ -178,6 +200,29 @@ class FieldDescriptor
     }
 
     /**
+     * Returns all options
+     *
+     * @return options
+     */
+    public function getOptions()
+    {
+        return $this->_options;
+    }
+
+    /**
+     * Returns an option
+     *
+     * @return option
+     */
+    public function getOption($name)
+    {
+        if (!isset($this->_options[$name]))
+            return null;
+
+        return $this->_options[$name];
+    }
+
+    /**
      * Returns true if field is repeated
      *
      * @return bool
@@ -226,7 +271,7 @@ class FieldDescriptor
      */
     public function setDefault($default)
     {
-        $this->_default = $default;
+        $this->_options['default'] = $default;
     }
 
     /**
@@ -299,5 +344,13 @@ class FieldDescriptor
     public function setTypeDescriptor($typeDescriptor)
     {
         $this->_typeDescriptor = $typeDescriptor;
+    }
+
+    /**
+     * Sets an option
+     */
+    public function setOption($name, $value)
+    {
+        $this->_options[$name] = $value;
     }
 }
